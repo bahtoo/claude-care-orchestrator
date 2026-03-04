@@ -111,3 +111,178 @@ class FHIROutput(BaseModel):
     )
     source_text_redacted: str = Field(description="The redacted source text used for generation")
     total_resources: int = Field(default=0, description="Total number of resources generated")
+
+
+# ---------------------------------------------------------------------------
+# Payer Policy Models (Phase 2)
+# ---------------------------------------------------------------------------
+
+
+class CoverageCriteria(BaseModel):
+    """Criteria a payer requires to approve a procedure."""
+
+    required_diagnoses: list[str] = Field(
+        default_factory=list,
+        description="ICD-10 codes that qualify for coverage",
+    )
+    required_documentation: list[str] = Field(
+        default_factory=list,
+        description="Required clinical documentation (e.g., 'failed conservative treatment')",
+    )
+    age_restrictions: str = Field(
+        default="none",
+        description="Age-based restrictions (e.g., '18+', '40-75')",
+    )
+    review_timeline_hours: int = Field(
+        default=72,
+        description="Payer's standard review timeline in hours",
+    )
+
+
+class PriorAuthRequirement(BaseModel):
+    """Whether a specific CPT code requires prior authorization."""
+
+    cpt_code: str = Field(description="The CPT procedure code")
+    requires_auth: bool = Field(description="Whether PA is required")
+    criteria: CoverageCriteria | None = Field(
+        default=None, description="Coverage criteria if PA is required"
+    )
+    auto_approve_diagnoses: list[str] = Field(
+        default_factory=list,
+        description="ICD-10 codes that qualify for automatic approval",
+    )
+
+
+class PayerPolicy(BaseModel):
+    """A payer's prior authorization policy configuration."""
+
+    payer_id: str = Field(description="Unique payer identifier")
+    payer_name: str = Field(description="Display name of the payer")
+    policy_version: str = Field(default="1.0", description="Policy version")
+    prior_auth_rules: list[PriorAuthRequirement] = Field(
+        default_factory=list,
+        description="PA requirements by CPT code",
+    )
+    default_requires_auth: bool = Field(
+        default=False,
+        description="Default PA requirement for unlisted CPT codes",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Medical Necessity Models (Phase 2)
+# ---------------------------------------------------------------------------
+
+
+class NecessityDetermination(StrEnum):
+    """Possible outcomes of a medical necessity evaluation."""
+
+    APPROVED = "approved"
+    DENIED = "denied"
+    NEEDS_INFO = "needs_additional_info"
+
+
+class NecessityDecision(BaseModel):
+    """Result of a medical necessity evaluation."""
+
+    determination: NecessityDetermination = Field(
+        description="Outcome: approved, denied, or needs_additional_info"
+    )
+    rationale: str = Field(description="Clinical rationale for the decision")
+    criteria_met: list[str] = Field(
+        default_factory=list,
+        description="Which payer criteria were satisfied",
+    )
+    criteria_unmet: list[str] = Field(
+        default_factory=list,
+        description="Which payer criteria were NOT satisfied",
+    )
+    missing_documentation: list[str] = Field(
+        default_factory=list,
+        description="Documentation needed to change the determination",
+    )
+    confidence_score: float = Field(
+        default=0.0,
+        description="0.0–1.0 confidence in the determination",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Prior Auth Models (Phase 2)
+# ---------------------------------------------------------------------------
+
+
+class PriorAuthStatus(StrEnum):
+    """Status of a prior authorization request."""
+
+    NOT_REQUIRED = "not_required"
+    APPROVED = "approved"
+    DENIED = "denied"
+    PENDING_INFO = "pending_additional_info"
+    SUBMITTED = "submitted"
+
+
+class PriorAuthRequest(BaseModel):
+    """A generated prior authorization request document."""
+
+    payer_id: str = Field(description="Target payer identifier")
+    procedure_code: str = Field(description="Primary CPT code for the procedure")
+    diagnosis_codes: list[str] = Field(
+        default_factory=list, description="Supporting ICD-10 codes"
+    )
+    clinical_summary: str = Field(
+        description="Redacted clinical summary supporting the request"
+    )
+    necessity_decision: NecessityDecision = Field(
+        description="Medical necessity evaluation result"
+    )
+    fhir_resources: FHIROutput | None = Field(
+        default=None, description="Generated FHIR resources"
+    )
+
+
+class PriorAuthResult(BaseModel):
+    """Full result of the prior authorization workflow."""
+
+    status: PriorAuthStatus = Field(description="Overall PA status")
+    request: PriorAuthRequest | None = Field(
+        default=None, description="Generated PA request (if PA was required)"
+    )
+    turnaround_estimate_minutes: float = Field(
+        default=0.0,
+        description="Estimated processing time in minutes",
+    )
+    audit_report: AuditReport | None = Field(
+        default=None, description="Underlying compliance audit"
+    )
+    summary: str = Field(default="", description="Human-readable summary")
+
+
+# ---------------------------------------------------------------------------
+# Appeal Letter Models (Phase 2)
+# ---------------------------------------------------------------------------
+
+
+class AppealType(StrEnum):
+    """Types of prior authorization appeals."""
+
+    INITIAL = "initial_appeal"
+    PEER_TO_PEER = "peer_to_peer_review"
+    EXTERNAL = "external_review"
+
+
+class AppealLetter(BaseModel):
+    """A generated appeal letter for a denied prior authorization."""
+
+    appeal_type: AppealType = Field(description="Type of appeal")
+    letter_content: str = Field(description="Full appeal letter text (markdown)")
+    clinical_justification: str = Field(
+        description="Key clinical arguments supporting the appeal"
+    )
+    policy_citations: list[str] = Field(
+        default_factory=list,
+        description="Payer policy sections cited in the appeal",
+    )
+    denial_reason: str = Field(description="Original reason for denial")
+    procedure_code: str = Field(description="CPT code being appealed")
+

@@ -1,0 +1,63 @@
+{
+  "payer_id": "commercial_generic",
+  "payer_name": "Generic Commercial Payer",
+  "policy_version": "2026.1",
+  "default_requires_auth": false,
+  "prior_auth_rules": [
+    {
+      "cpt_code": "27447",
+      "requires_auth": true,
+      "criteria": {
+        "required_diagnoses": ["M17.11", "M17.12", "M17.0"],
+        "required_documentation": [
+          "Failed conservative treatment for 6+ months",
+          "Documented physical therapy attempts",
+          "Imaging confirming structural damage"
+        ],
+        "age_restrictions": "18+",
+        "review_timeline_hours": 72
+      },
+      "auto_approve_diagnoses": []
+    },
+    {
+      "cpt_code": "73221",
+      "requires_auth": true,
+      "criteria": {
+        "required_diagnoses": ["M23.5", "M23.0", "M23.2", "M23.3", "S83.5"],
+        "required_documentation": [
+          "Clinical exam findings",
+          "Failed initial treatment"
+        ],
+        "age_restrictions": "none",
+        "review_timeline_hours": 48
+      },
+      "auto_approve_diagnoses": ["S83.5"]
+    },
+    {
+      "cpt_code": "72148",
+      "requires_auth": true,
+      "criteria": {
+        "required_diagnoses": ["M54.5", "M54.4", "M51.16", "M51.17", "G89.29"],
+        "required_documentation": [
+          "Pain lasting 6+ weeks",
+          "Failed conservative treatment"
+        ],
+        "age_restrictions": "none",
+        "review_timeline_hours": 48
+      },
+      "auto_approve_diagnoses": ["G89.29"]
+    },
+    {
+      "cpt_code": "99214",
+      "requires_auth": false,
+      "criteria": null,
+      "auto_approve_diagnoses": []
+    },
+    {
+      "cpt_code": "99213",
+      "requires_auth": false,
+      "criteria": null,
+      "auto_approve_diagnoses": []
+    }
+  ]
+}

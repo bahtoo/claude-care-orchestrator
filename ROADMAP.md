@@ -13,11 +13,19 @@
 - MCP server for Claude Desktop/Code integration
 - 61 automated tests, ruff linting, GitHub Actions CI
 
-## Phase 2: Friction Reduction (Shipping Products)
+## Phase 2: Friction Reduction (Shipping Products) ✅
 
 - **Objective:** The "Payer-Provider Bridge."
 - **Key Result:** Reduce Prior Authorization turnaround time from 72 hours to < 5 minutes using Claude's 200k context window.
 - **Feature:** Automated Medical Necessity Audit Engine.
+
+### Implementation Notes (v0.2.0 — 2026-03-05)
+
+- Payer Policy Engine with 3 payer configs (Commercial, Medicare, Medicaid)
+- LLM-powered Medical Necessity Evaluator with dynamic payer-criteria prompts
+- End-to-end Prior Auth Generator orchestrating 5-step workflow
+- Appeal Letter Generator supporting initial, peer-to-peer, and external review
+- 3 new MCP tools, 10 new domain models, 53 new tests (114 total)
 
 ## Phase 3: Scaling the Vertical (Market Leadership)
 

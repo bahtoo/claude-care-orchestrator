@@ -4,10 +4,15 @@ MCP Server for care-orchestrator.
 Exposes healthcare compliance tools via the Model Context Protocol (MCP),
 allowing Claude Desktop / Claude Code to safely interact with the engine.
 
-Tools exposed:
+Tools exposed (Phase 1):
   - audit_clinical_text: Full two-pass compliance audit
   - extract_fhir_resources: Convert clinical text to FHIR R4 JSON
   - check_phi_status: Quick regex-only PHI scan (no LLM cost)
+
+Tools exposed (Phase 2):
+  - submit_prior_auth: End-to-end prior authorization workflow
+  - evaluate_medical_necessity: Medical necessity check against payer criteria
+  - generate_appeal: Appeal letter for denied prior authorizations
 """
 
 from __future__ import annotations
@@ -18,16 +23,20 @@ from mcp.server import Server
 from mcp.server.stdio import run_server
 from mcp.types import TextContent, Tool
 
+from care_orchestrator.appeal_generator import AppealGenerator
 from care_orchestrator.compliance_engine import ComplianceEngine
 from care_orchestrator.fhir_mapper import fhir_mapper
-from care_orchestrator.models import ClinicalNote
+from care_orchestrator.models import AppealType, ClinicalNote, NecessityDetermination
 from care_orchestrator.phi_detector import phi_detector
+from care_orchestrator.prior_auth import PriorAuthGenerator
 
 # Initialize the MCP server
 server = Server("care-orchestrator")
 
-# Lazy-init compliance engine (only created when a tool that needs it is called)
+# Lazy-init singletons
 _engine: ComplianceEngine | None = None
+_pa_generator: PriorAuthGenerator | None = None
+_appeal_gen: AppealGenerator | None = None
 
 
 def _get_engine() -> ComplianceEngine:
@@ -36,6 +45,22 @@ def _get_engine() -> ComplianceEngine:
     if _engine is None:
         _engine = ComplianceEngine()
     return _engine
+
+
+def _get_pa_generator() -> PriorAuthGenerator:
+    """Get or create the PA generator singleton."""
+    global _pa_generator  # noqa: PLW0603
+    if _pa_generator is None:
+        _pa_generator = PriorAuthGenerator()
+    return _pa_generator
+
+
+def _get_appeal_gen() -> AppealGenerator:
+    """Get or create the appeal generator singleton."""
+    global _appeal_gen  # noqa: PLW0603
+    if _appeal_gen is None:
+        _appeal_gen = AppealGenerator()
+    return _appeal_gen
 
 
 # ---------------------------------------------------------------------------
@@ -112,6 +137,86 @@ async def list_tools() -> list[Tool]:
                 "required": ["text"],
             },
         ),
+        # ── Phase 2 Tools ──────────────────────────────────────────────
+        Tool(
+            name="submit_prior_auth",
+            description=(
+                "Run the full Prior Authorization workflow: compliance audit → "
+                "policy lookup → medical necessity evaluation → FHIR generation → "
+                "PA request assembly. Returns status, decision, and documents."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "description": "Raw clinical note text.",
+                    },
+                    "payer_id": {
+                        "type": "string",
+                        "description": (
+                            "Payer identifier (e.g., 'commercial_generic', "
+                            "'medicare', 'medicaid')."
+                        ),
+                    },
+                },
+                "required": ["text", "payer_id"],
+            },
+        ),
+        Tool(
+            name="evaluate_medical_necessity",
+            description=(
+                "Evaluate whether clinical documentation supports medical "
+                "necessity for a procedure based on a specific payer's criteria."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "description": "Raw clinical note text.",
+                    },
+                    "payer_id": {
+                        "type": "string",
+                        "description": "Payer identifier.",
+                    },
+                },
+                "required": ["text", "payer_id"],
+            },
+        ),
+        Tool(
+            name="generate_appeal",
+            description=(
+                "Generate an appeal letter for a denied prior authorization. "
+                "Supports initial, peer-to-peer, and external review appeals."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "description": "Raw clinical note text.",
+                    },
+                    "payer_id": {
+                        "type": "string",
+                        "description": "Payer identifier.",
+                    },
+                    "denial_reason": {
+                        "type": "string",
+                        "description": "The payer's stated reason for denial.",
+                    },
+                    "appeal_type": {
+                        "type": "string",
+                        "description": (
+                            "Type of appeal: 'initial_appeal', "
+                            "'peer_to_peer_review', or 'external_review'."
+                        ),
+                        "default": "initial_appeal",
+                    },
+                },
+                "required": ["text", "payer_id", "denial_reason"],
+            },
+        ),
     ]
 
 
@@ -123,14 +228,18 @@ async def list_tools() -> list[Tool]:
 @server.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     """Handle tool calls from Claude."""
-    if name == "audit_clinical_text":
-        return await _handle_audit(arguments)
-    elif name == "extract_fhir_resources":
-        return await _handle_fhir(arguments)
-    elif name == "check_phi_status":
-        return await _handle_phi_check(arguments)
-    else:
-        return [TextContent(type="text", text=f"Unknown tool: {name}")]
+    handlers = {
+        "audit_clinical_text": _handle_audit,
+        "extract_fhir_resources": _handle_fhir,
+        "check_phi_status": _handle_phi_check,
+        "submit_prior_auth": _handle_prior_auth,
+        "evaluate_medical_necessity": _handle_necessity,
+        "generate_appeal": _handle_appeal,
+    }
+    handler = handlers.get(name)
+    if handler:
+        return await handler(arguments)
+    return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
 
 async def _handle_audit(arguments: dict) -> list[TextContent]:
@@ -200,6 +309,104 @@ async def _handle_phi_check(arguments: dict) -> list[TextContent]:
             for e in result.entities
         ],
         "redacted_text": result.redacted_text,
+    }
+
+    return [TextContent(type="text", text=json.dumps(output, indent=2))]
+
+
+async def _handle_prior_auth(arguments: dict) -> list[TextContent]:
+    """Handle the submit_prior_auth tool call."""
+    pa_gen = _get_pa_generator()
+    result = pa_gen.submit(
+        clinical_text=arguments["text"],
+        payer_id=arguments["payer_id"],
+    )
+
+    output = {
+        "status": result.status.value,
+        "summary": result.summary,
+        "turnaround_minutes": result.turnaround_estimate_minutes,
+    }
+    if result.request:
+        output["decision"] = {
+            "determination": result.request.necessity_decision.determination.value,
+            "rationale": result.request.necessity_decision.rationale,
+            "confidence": result.request.necessity_decision.confidence_score,
+            "criteria_met": result.request.necessity_decision.criteria_met,
+            "criteria_unmet": result.request.necessity_decision.criteria_unmet,
+            "missing_docs": result.request.necessity_decision.missing_documentation,
+        }
+        if result.request.fhir_resources:
+            output["fhir_resource_count"] = result.request.fhir_resources.total_resources
+
+    return [TextContent(type="text", text=json.dumps(output, indent=2))]
+
+
+async def _handle_necessity(arguments: dict) -> list[TextContent]:
+    """Handle the evaluate_medical_necessity tool call."""
+    # Run a PA workflow but return just the necessity decision
+    pa_gen = _get_pa_generator()
+    result = pa_gen.submit(
+        clinical_text=arguments["text"],
+        payer_id=arguments["payer_id"],
+    )
+
+    if result.request and result.request.necessity_decision:
+        dec = result.request.necessity_decision
+        output = {
+            "determination": dec.determination.value,
+            "rationale": dec.rationale,
+            "confidence": dec.confidence_score,
+            "criteria_met": dec.criteria_met,
+            "criteria_unmet": dec.criteria_unmet,
+            "missing_documentation": dec.missing_documentation,
+        }
+    else:
+        output = {
+            "determination": "not_evaluated",
+            "rationale": result.summary,
+        }
+
+    return [TextContent(type="text", text=json.dumps(output, indent=2))]
+
+
+async def _handle_appeal(arguments: dict) -> list[TextContent]:
+    """Handle the generate_appeal tool call."""
+    # First run PA workflow to get the necessity decision
+    pa_gen = _get_pa_generator()
+    result = pa_gen.submit(
+        clinical_text=arguments["text"],
+        payer_id=arguments["payer_id"],
+    )
+
+    necessity_decision = (
+        result.request.necessity_decision
+        if result.request
+        else NecessityDetermination.DENIED
+    )
+
+    appeal_type_str = arguments.get("appeal_type", "initial_appeal")
+    try:
+        appeal_type = AppealType(appeal_type_str)
+    except ValueError:
+        appeal_type = AppealType.INITIAL
+
+    appeal_gen = _get_appeal_gen()
+    letter = appeal_gen.generate(
+        denial_reason=arguments["denial_reason"],
+        procedure_code=result.request.procedure_code if result.request else "unknown",
+        diagnosis_codes=result.request.diagnosis_codes if result.request else [],
+        clinical_text=result.audit_report.redacted_text if result.audit_report else "",
+        necessity_decision=necessity_decision,
+        payer_name=arguments["payer_id"],
+        appeal_type=appeal_type,
+    )
+
+    output = {
+        "appeal_type": letter.appeal_type.value,
+        "letter": letter.letter_content,
+        "justification": letter.clinical_justification,
+        "policy_citations": letter.policy_citations,
     }
 
     return [TextContent(type="text", text=json.dumps(output, indent=2))]

@@ -1,0 +1,44 @@
+{
+  "payer_id": "medicare",
+  "payer_name": "Medicare (CMS)",
+  "policy_version": "2026.1",
+  "default_requires_auth": false,
+  "prior_auth_rules": [
+    {
+      "cpt_code": "27447",
+      "requires_auth": true,
+      "criteria": {
+        "required_diagnoses": ["M17.11", "M17.12", "M17.0", "M17.9"],
+        "required_documentation": [
+          "Documented failed conservative treatment (6+ months)",
+          "Radiographic evidence of joint damage",
+          "Functional limitation documentation",
+          "BMI documentation"
+        ],
+        "age_restrictions": "65+",
+        "review_timeline_hours": 48
+      },
+      "auto_approve_diagnoses": []
+    },
+    {
+      "cpt_code": "73221",
+      "requires_auth": false,
+      "criteria": null,
+      "auto_approve_diagnoses": []
+    },
+    {
+      "cpt_code": "72148",
+      "requires_auth": true,
+      "criteria": {
+        "required_diagnoses": ["M54.5", "M54.4", "M51.16", "M51.17"],
+        "required_documentation": [
+          "Symptoms lasting 4+ weeks",
+          "Red flag symptoms ruled out or present"
+        ],
+        "age_restrictions": "none",
+        "review_timeline_hours": 24
+      },
+      "auto_approve_diagnoses": []
+    }
+  ]
+}

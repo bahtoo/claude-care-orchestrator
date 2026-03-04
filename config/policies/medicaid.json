@@ -1,0 +1,58 @@
+{
+  "payer_id": "medicaid",
+  "payer_name": "Medicaid (State Program)",
+  "policy_version": "2026.1",
+  "default_requires_auth": true,
+  "prior_auth_rules": [
+    {
+      "cpt_code": "27447",
+      "requires_auth": true,
+      "criteria": {
+        "required_diagnoses": ["M17.11", "M17.12", "M17.0"],
+        "required_documentation": [
+          "Failed conservative treatment (6+ months)",
+          "Physical therapy documentation",
+          "Imaging evidence",
+          "Specialist referral"
+        ],
+        "age_restrictions": "21+",
+        "review_timeline_hours": 96
+      },
+      "auto_approve_diagnoses": []
+    },
+    {
+      "cpt_code": "73221",
+      "requires_auth": true,
+      "criteria": {
+        "required_diagnoses": ["M23.5", "M23.0", "S83.5", "M23.2"],
+        "required_documentation": [
+          "Physical exam findings",
+          "X-ray results if available"
+        ],
+        "age_restrictions": "none",
+        "review_timeline_hours": 72
+      },
+      "auto_approve_diagnoses": []
+    },
+    {
+      "cpt_code": "72148",
+      "requires_auth": true,
+      "criteria": {
+        "required_diagnoses": ["M54.5", "M54.4", "M51.16"],
+        "required_documentation": [
+          "Pain lasting 8+ weeks",
+          "Failed conservative treatment documentation"
+        ],
+        "age_restrictions": "none",
+        "review_timeline_hours": 72
+      },
+      "auto_approve_diagnoses": []
+    },
+    {
+      "cpt_code": "99214",
+      "requires_auth": false,
+      "criteria": null,
+      "auto_approve_diagnoses": []
+    }
+  ]
+}
