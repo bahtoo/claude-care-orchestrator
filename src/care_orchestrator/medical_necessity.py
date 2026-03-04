@@ -146,9 +146,7 @@ Respond STRICTLY in this XML format:
             logger.error("LLM evaluation failed")
             raise
 
-    def _parse_decision(
-        self, llm_response: str, criteria: CoverageCriteria
-    ) -> NecessityDecision:
+    def _parse_decision(self, llm_response: str, criteria: CoverageCriteria) -> NecessityDecision:
         """Parse the LLM response into a NecessityDecision."""
         # Default values
         determination = NecessityDetermination.NEEDS_INFO
@@ -159,9 +157,7 @@ Respond STRICTLY in this XML format:
         missing_docs: list[str] = []
 
         # Parse determination
-        det_match = re.search(
-            r"<determination>(.*?)</determination>", llm_response, re.DOTALL
-        )
+        det_match = re.search(r"<determination>(.*?)</determination>", llm_response, re.DOTALL)
         if det_match:
             raw_det = det_match.group(1).strip().upper()
             if raw_det == "APPROVED":
@@ -172,9 +168,7 @@ Respond STRICTLY in this XML format:
                 determination = NecessityDetermination.NEEDS_INFO
 
         # Parse confidence
-        conf_match = re.search(
-            r"<confidence>(.*?)</confidence>", llm_response, re.DOTALL
-        )
+        conf_match = re.search(r"<confidence>(.*?)</confidence>", llm_response, re.DOTALL)
         if conf_match:
             try:
                 confidence = float(conf_match.group(1).strip())
@@ -183,33 +177,25 @@ Respond STRICTLY in this XML format:
                 confidence = 0.5
 
         # Parse rationale
-        rat_match = re.search(
-            r"<rationale>(.*?)</rationale>", llm_response, re.DOTALL
-        )
+        rat_match = re.search(r"<rationale>(.*?)</rationale>", llm_response, re.DOTALL)
         if rat_match:
             rationale = rat_match.group(1).strip()
 
         # Parse criteria met/unmet
-        met_match = re.search(
-            r"<criteria_met>(.*?)</criteria_met>", llm_response, re.DOTALL
-        )
+        met_match = re.search(r"<criteria_met>(.*?)</criteria_met>", llm_response, re.DOTALL)
         if met_match:
             raw = met_match.group(1).strip()
             if raw.upper() != "NONE" and raw:
                 criteria_met = [c.strip() for c in raw.split(",") if c.strip()]
 
-        unmet_match = re.search(
-            r"<criteria_unmet>(.*?)</criteria_unmet>", llm_response, re.DOTALL
-        )
+        unmet_match = re.search(r"<criteria_unmet>(.*?)</criteria_unmet>", llm_response, re.DOTALL)
         if unmet_match:
             raw = unmet_match.group(1).strip()
             if raw.upper() != "NONE" and raw:
                 criteria_unmet = [c.strip() for c in raw.split(",") if c.strip()]
 
         # Parse missing docs
-        docs_match = re.search(
-            r"<missing_docs>(.*?)</missing_docs>", llm_response, re.DOTALL
-        )
+        docs_match = re.search(r"<missing_docs>(.*?)</missing_docs>", llm_response, re.DOTALL)
         if docs_match:
             raw = docs_match.group(1).strip()
             if raw.upper() != "NONE" and raw:

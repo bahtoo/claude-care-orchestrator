@@ -123,9 +123,7 @@ class PolicyEngine:
 
         overlap = set(icd10_codes) & set(requirement.auto_approve_diagnoses)
         if overlap:
-            logger.info(
-                f"Auto-approve match: {overlap} for CPT {cpt_code} / {payer_id}"
-            )
+            logger.info(f"Auto-approve match: {overlap} for CPT {cpt_code} / {payer_id}")
             return True
         return False
 

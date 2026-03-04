@@ -95,9 +95,7 @@ class FHIRMapper:
 
         # ── Generate ServiceRequest for Prior Auth workflows ──────────────
         if admin_metadata.workflow_type == "prior_auth":
-            service_request = self._build_service_request(
-                admin_metadata, patient_id
-            )
+            service_request = self._build_service_request(admin_metadata, patient_id)
             resources.append(service_request)
 
         output = FHIROutput(

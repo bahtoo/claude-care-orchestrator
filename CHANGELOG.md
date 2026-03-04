@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-05
+
+### Added
+
+- **Agent Framework** — `BaseAgent` abstract class + `AgentRegistry` with task routing and agent chaining
+- **Coding Agent** — validates CPT/ICD-10 pairings, bundling conflicts, modifier requirements
+- **Eligibility Agent** — verifies insurance coverage per CPT code against payer policies
+- **Prior Auth Agent** — wraps Phase 2 PA workflow as a chainable pipeline agent
+- **Claims Agent** — assembles CMS-1500 claims, validates pre-conditions, routes denials
+- **RCM Orchestrator** — end-to-end pipeline: Coding → Eligibility → Prior Auth → Claims
+- **Regulatory Dashboard** — compliance metrics aggregation, CMS-ready report generation
+- 12 new domain models (`RCMStage`, `AgentTask`, `AgentResult`, `ClaimLine`, `ClaimData`, `RCMContext`, `RCMResult`, `ComplianceMetrics`)
+- 3 new MCP tools: `run_rcm_pipeline`, `get_compliance_metrics`, `validate_coding`
+- 62 new tests across 6 test files (176 total, up from 114)
+
 ## [0.2.0] - 2026-03-05
 
 ### Added

@@ -32,9 +32,7 @@ class PHIDetector:
         # SSN: 123-45-6789, 123 45 6789, 123456789
         (
             PHIType.SSN,
-            re.compile(
-                r"\b(?!000|666|9\d{2})\d{3}[-\s]?(?!00)\d{2}[-\s]?(?!0000)\d{4}\b"
-            ),
+            re.compile(r"\b(?!000|666|9\d{2})\d{3}[-\s]?(?!00)\d{2}[-\s]?(?!0000)\d{4}\b"),
         ),
         # Phone: (123) 456-7890, 123-456-7890, 123.456.7890, 1234567890, +1-123-456-7890
         (
@@ -68,9 +66,7 @@ class PHIDetector:
         # Email
         (
             PHIType.EMAIL,
-            re.compile(
-                r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b"
-            ),
+            re.compile(r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b"),
         ),
         # MRN: Common formats like MRN: 12345678, MRN#12345678
         (
@@ -144,9 +140,7 @@ class PHIDetector:
         redacted_text = text
         for entity in entities_sorted:
             token = self.REDACTION_TOKENS.get(entity.phi_type, "[REDACTED]")
-            redacted_text = (
-                redacted_text[: entity.start] + token + redacted_text[entity.end :]
-            )
+            redacted_text = redacted_text[: entity.start] + token + redacted_text[entity.end :]
 
         # Re-sort entities by position (forward) for output
         entities = sorted(entities, key=lambda e: e.start)

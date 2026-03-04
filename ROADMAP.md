@@ -27,8 +27,16 @@
 - Appeal Letter Generator supporting initial, peer-to-peer, and external review
 - 3 new MCP tools, 10 new domain models, 53 new tests (114 total)
 
-## Phase 3: Scaling the Vertical (Market Leadership)
+## Phase 3: Scaling the Vertical (Market Leadership) ✅
 
 - **Objective:** Regulatory and Policy Leadership.
 - **Key Result:** Establishing Anthropic as the "Voice of AI" for HHS and CMS regulatory readiness.
 - **Feature:** Multi-agent orchestration for complex Hospital Revenue Cycle Management (RCM).
+
+### Implementation Notes (v0.3.0 — 2026-03-05)
+
+- Agent framework: BaseAgent ABC + AgentRegistry with chaining
+- 4 specialized RCM agents: Coding, Eligibility, Prior Auth, Claims
+- End-to-end RCM Orchestrator with compliance audit pre-pass
+- Regulatory Dashboard with CMS-ready report generation
+- 9 MCP tools total, 176 automated tests

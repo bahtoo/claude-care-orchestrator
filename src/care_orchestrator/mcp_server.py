@@ -13,6 +13,11 @@ Tools exposed (Phase 2):
   - submit_prior_auth: End-to-end prior authorization workflow
   - evaluate_medical_necessity: Medical necessity check against payer criteria
   - generate_appeal: Appeal letter for denied prior authorizations
+
+Tools exposed (Phase 3):
+  - run_rcm_pipeline: Full Revenue Cycle Management workflow
+  - get_compliance_metrics: Regulatory dashboard metrics
+  - validate_coding: CPT/ICD-10 code validation
 """
 
 from __future__ import annotations
@@ -26,9 +31,16 @@ from mcp.types import TextContent, Tool
 from care_orchestrator.appeal_generator import AppealGenerator
 from care_orchestrator.compliance_engine import ComplianceEngine
 from care_orchestrator.fhir_mapper import fhir_mapper
-from care_orchestrator.models import AppealType, ClinicalNote, NecessityDetermination
+from care_orchestrator.models import (
+    AgentTask,
+    AppealType,
+    ClinicalNote,
+    NecessityDetermination,
+)
 from care_orchestrator.phi_detector import phi_detector
 from care_orchestrator.prior_auth import PriorAuthGenerator
+from care_orchestrator.rcm_orchestrator import RCMOrchestrator
+from care_orchestrator.regulatory_dashboard import RegulatoryDashboard
 
 # Initialize the MCP server
 server = Server("care-orchestrator")
@@ -61,6 +73,18 @@ def _get_appeal_gen() -> AppealGenerator:
     if _appeal_gen is None:
         _appeal_gen = AppealGenerator()
     return _appeal_gen
+
+
+_rcm_orchestrator: RCMOrchestrator | None = None
+_dashboard: RegulatoryDashboard = RegulatoryDashboard()
+
+
+def _get_rcm() -> RCMOrchestrator:
+    """Get or create the RCM orchestrator singleton."""
+    global _rcm_orchestrator  # noqa: PLW0603
+    if _rcm_orchestrator is None:
+        _rcm_orchestrator = RCMOrchestrator()
+    return _rcm_orchestrator
 
 
 # ---------------------------------------------------------------------------
@@ -155,8 +179,7 @@ async def list_tools() -> list[Tool]:
                     "payer_id": {
                         "type": "string",
                         "description": (
-                            "Payer identifier (e.g., 'commercial_generic', "
-                            "'medicare', 'medicaid')."
+                            "Payer identifier (e.g., 'commercial_generic', 'medicare', 'medicaid')."
                         ),
                     },
                 },
@@ -217,6 +240,65 @@ async def list_tools() -> list[Tool]:
                 "required": ["text", "payer_id", "denial_reason"],
             },
         ),
+        # ── Phase 3 Tools ──────────────────────────────────────────────
+        Tool(
+            name="run_rcm_pipeline",
+            description=(
+                "Run the full Revenue Cycle Management pipeline: "
+                "coding validation → eligibility check → prior auth → "
+                "claim assembly. Returns complete audit trail."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "description": "Raw clinical note text.",
+                    },
+                    "payer_id": {
+                        "type": "string",
+                        "description": "Payer identifier.",
+                    },
+                },
+                "required": ["text", "payer_id"],
+            },
+        ),
+        Tool(
+            name="get_compliance_metrics",
+            description=(
+                "Get aggregated compliance metrics from the "
+                "regulatory dashboard: PHI rates, PA outcomes, "
+                "coding quality, claim volumes."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+        ),
+        Tool(
+            name="validate_coding",
+            description=(
+                "Validate CPT/ICD-10 code combinations for "
+                "bundling conflicts, modifier requirements, "
+                "and pairing rules."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "cpt_codes": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "CPT codes to validate.",
+                    },
+                    "icd10_codes": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "ICD-10 diagnosis codes.",
+                    },
+                },
+                "required": ["cpt_codes", "icd10_codes"],
+            },
+        ),
     ]
 
 
@@ -235,6 +317,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         "submit_prior_auth": _handle_prior_auth,
         "evaluate_medical_necessity": _handle_necessity,
         "generate_appeal": _handle_appeal,
+        "run_rcm_pipeline": _handle_rcm_pipeline,
+        "get_compliance_metrics": _handle_compliance_metrics,
+        "validate_coding": _handle_validate_coding,
     }
     handler = handlers.get(name)
     if handler:
@@ -380,9 +465,7 @@ async def _handle_appeal(arguments: dict) -> list[TextContent]:
     )
 
     necessity_decision = (
-        result.request.necessity_decision
-        if result.request
-        else NecessityDetermination.DENIED
+        result.request.necessity_decision if result.request else NecessityDetermination.DENIED
     )
 
     appeal_type_str = arguments.get("appeal_type", "initial_appeal")
@@ -409,6 +492,68 @@ async def _handle_appeal(arguments: dict) -> list[TextContent]:
         "policy_citations": letter.policy_citations,
     }
 
+    return [TextContent(type="text", text=json.dumps(output, indent=2))]
+
+
+async def _handle_rcm_pipeline(arguments: dict) -> list[TextContent]:
+    """Handle the run_rcm_pipeline tool call."""
+    rcm = _get_rcm()
+    result = rcm.run(
+        clinical_text=arguments["text"],
+        payer_id=arguments["payer_id"],
+    )
+
+    # Record for dashboard metrics
+    _dashboard.record(result)
+
+    output = {
+        "success": result.success,
+        "stages_completed": result.stages_completed,
+        "summary": result.summary,
+        "turnaround_minutes": round(result.turnaround_minutes, 2),
+    }
+
+    for ar in result.context.agent_results:
+        output[ar.stage] = {
+            "agent": ar.agent_name,
+            "success": ar.success,
+            "errors": ar.errors,
+            "recommendations": ar.recommendations,
+        }
+
+    return [TextContent(type="text", text=json.dumps(output, indent=2))]
+
+
+async def _handle_compliance_metrics(
+    _arguments: dict,
+) -> list[TextContent]:
+    """Handle the get_compliance_metrics tool call."""
+    report = _dashboard.generate_report()
+    return [TextContent(type="text", text=json.dumps(report, indent=2))]
+
+
+async def _handle_validate_coding(
+    arguments: dict,
+) -> list[TextContent]:
+    """Handle the validate_coding tool call."""
+    from care_orchestrator.agents.coding_agent import CodingAgent
+
+    agent = CodingAgent()
+    task = AgentTask(
+        task_type="coding",
+        input_data={"clinical_text": ""},
+        context={
+            "cpt_codes": arguments["cpt_codes"],
+            "icd10_codes": arguments["icd10_codes"],
+        },
+    )
+    result = agent.process(task)
+
+    output = {
+        "valid": result.success and not result.errors,
+        "errors": result.errors,
+        "recommendations": result.recommendations,
+    }
     return [TextContent(type="text", text=json.dumps(output, indent=2))]
 
 

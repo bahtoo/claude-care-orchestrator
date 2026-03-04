@@ -67,8 +67,7 @@ class AppealGenerator:
             AppealLetter with formatted content and justification.
         """
         logger.info(
-            f"Generating {appeal_type.value} for CPT {procedure_code} "
-            f"(denial: {denial_reason})"
+            f"Generating {appeal_type.value} for CPT {procedure_code} (denial: {denial_reason})"
         )
 
         llm_response = self._draft_appeal(
@@ -188,16 +187,12 @@ Respond STRICTLY in this XML format:
         policy_citations: list[str] = []
 
         # Parse letter content
-        letter_match = re.search(
-            r"<letter>(.*?)</letter>", llm_response, re.DOTALL
-        )
+        letter_match = re.search(r"<letter>(.*?)</letter>", llm_response, re.DOTALL)
         if letter_match:
             letter_content = letter_match.group(1).strip()
 
         # Parse justification
-        just_match = re.search(
-            r"<justification>(.*?)</justification>", llm_response, re.DOTALL
-        )
+        just_match = re.search(r"<justification>(.*?)</justification>", llm_response, re.DOTALL)
         if just_match:
             justification = just_match.group(1).strip()
 

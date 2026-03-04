@@ -88,9 +88,7 @@ class PriorAuthGenerator:
         primary_cpt = cpt_codes[0]
 
         # ── Step 2: Policy Lookup ─────────────────────────────────────────
-        requirement = self._policy.check_requirements(
-            primary_cpt, icd10_codes, payer_id
-        )
+        requirement = self._policy.check_requirements(primary_cpt, icd10_codes, payer_id)
 
         if requirement is None:
             elapsed = (time.monotonic() - start_time) / 60
@@ -190,13 +188,9 @@ class PriorAuthGenerator:
             f"(confidence: {decision.confidence_score:.0%}).",
         ]
         if decision.criteria_unmet:
-            summary_lines.append(
-                f"Unmet criteria: {', '.join(decision.criteria_unmet)}."
-            )
+            summary_lines.append(f"Unmet criteria: {', '.join(decision.criteria_unmet)}.")
         if decision.missing_documentation:
-            summary_lines.append(
-                f"Missing docs: {', '.join(decision.missing_documentation)}."
-            )
+            summary_lines.append(f"Missing docs: {', '.join(decision.missing_documentation)}.")
         summary_lines.append(f"Processed in {elapsed:.1f} minutes.")
 
         result = PriorAuthResult(

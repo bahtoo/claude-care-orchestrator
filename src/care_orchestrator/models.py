@@ -227,18 +227,10 @@ class PriorAuthRequest(BaseModel):
 
     payer_id: str = Field(description="Target payer identifier")
     procedure_code: str = Field(description="Primary CPT code for the procedure")
-    diagnosis_codes: list[str] = Field(
-        default_factory=list, description="Supporting ICD-10 codes"
-    )
-    clinical_summary: str = Field(
-        description="Redacted clinical summary supporting the request"
-    )
-    necessity_decision: NecessityDecision = Field(
-        description="Medical necessity evaluation result"
-    )
-    fhir_resources: FHIROutput | None = Field(
-        default=None, description="Generated FHIR resources"
-    )
+    diagnosis_codes: list[str] = Field(default_factory=list, description="Supporting ICD-10 codes")
+    clinical_summary: str = Field(description="Redacted clinical summary supporting the request")
+    necessity_decision: NecessityDecision = Field(description="Medical necessity evaluation result")
+    fhir_resources: FHIROutput | None = Field(default=None, description="Generated FHIR resources")
 
 
 class PriorAuthResult(BaseModel):
@@ -276,9 +268,7 @@ class AppealLetter(BaseModel):
 
     appeal_type: AppealType = Field(description="Type of appeal")
     letter_content: str = Field(description="Full appeal letter text (markdown)")
-    clinical_justification: str = Field(
-        description="Key clinical arguments supporting the appeal"
-    )
+    clinical_justification: str = Field(description="Key clinical arguments supporting the appeal")
     policy_citations: list[str] = Field(
         default_factory=list,
         description="Payer policy sections cited in the appeal",
@@ -286,3 +276,124 @@ class AppealLetter(BaseModel):
     denial_reason: str = Field(description="Original reason for denial")
     procedure_code: str = Field(description="CPT code being appealed")
 
+
+# ---------------------------------------------------------------------------
+# Agent Framework Models (Phase 3)
+# ---------------------------------------------------------------------------
+
+
+class RCMStage(StrEnum):
+    """Stages in the Revenue Cycle Management pipeline."""
+
+    CODING = "coding"
+    ELIGIBILITY = "eligibility"
+    PRIOR_AUTH = "prior_auth"
+    CLAIMS = "claims"
+
+
+class AgentTask(BaseModel):
+    """A task dispatched to an agent."""
+
+    task_type: str = Field(description="Type of task (maps to RCMStage)")
+    input_data: dict = Field(default_factory=dict, description="Input data for the agent")
+    context: dict = Field(
+        default_factory=dict,
+        description="Shared context from previous agents",
+    )
+
+
+class AgentResult(BaseModel):
+    """Result produced by an agent."""
+
+    agent_name: str = Field(description="Name of the agent that produced this")
+    stage: str = Field(description="RCM stage this result belongs to")
+    success: bool = Field(description="Whether the agent completed successfully")
+    output_data: dict = Field(default_factory=dict, description="Agent's output data")
+    errors: list[str] = Field(default_factory=list, description="Error messages if any")
+    recommendations: list[str] = Field(
+        default_factory=list,
+        description="Agent recommendations for downstream stages",
+    )
+
+
+# ---------------------------------------------------------------------------
+# RCM Pipeline Models (Phase 3)
+# ---------------------------------------------------------------------------
+
+
+class ClaimLine(BaseModel):
+    """A single line item on a healthcare claim."""
+
+    cpt_code: str = Field(description="CPT procedure code")
+    icd10_codes: list[str] = Field(default_factory=list, description="Linked diagnosis codes")
+    units: int = Field(default=1, description="Number of units")
+    modifiers: list[str] = Field(default_factory=list, description="CPT modifiers (e.g., -25, -59)")
+    charge_amount: float = Field(default=0.0, description="Charge amount in USD")
+
+
+class ClaimData(BaseModel):
+    """CMS-1500 / UB-04 claim data structure."""
+
+    claim_type: str = Field(
+        default="professional",
+        description="professional (CMS-1500) or institutional (UB-04)",
+    )
+    payer_id: str = Field(description="Target payer identifier")
+    patient_id: str = Field(default="REDACTED", description="Redacted patient ID")
+    lines: list[ClaimLine] = Field(default_factory=list, description="Claim line items")
+    total_charges: float = Field(default=0.0, description="Total charge amount")
+    authorization_number: str = Field(default="", description="Prior auth number if applicable")
+    is_valid: bool = Field(default=True, description="Whether validation passed")
+    validation_errors: list[str] = Field(
+        default_factory=list, description="Validation error messages"
+    )
+
+
+class RCMContext(BaseModel):
+    """Context passed through the RCM pipeline between agents."""
+
+    clinical_text: str = Field(description="Original clinical note text")
+    payer_id: str = Field(description="Target payer for the encounter")
+    redacted_text: str = Field(default="", description="PHI-redacted text")
+    cpt_codes: list[str] = Field(default_factory=list, description="Validated CPT codes")
+    icd10_codes: list[str] = Field(default_factory=list, description="Validated ICD-10 codes")
+    is_eligible: bool = Field(default=False, description="Patient eligibility status")
+    pa_status: str = Field(default="", description="Prior auth status")
+    pa_number: str = Field(default="", description="Prior auth reference number")
+    claim: ClaimData | None = Field(default=None, description="Generated claim data")
+    agent_results: list[AgentResult] = Field(
+        default_factory=list,
+        description="Results from each agent in the pipeline",
+    )
+
+
+class RCMResult(BaseModel):
+    """Full result of the RCM pipeline."""
+
+    success: bool = Field(description="Whether the pipeline completed")
+    stages_completed: list[str] = Field(default_factory=list, description="RCM stages that ran")
+    context: RCMContext = Field(description="Final pipeline context")
+    summary: str = Field(default="", description="Human-readable summary")
+    turnaround_minutes: float = Field(default=0.0, description="Total processing time")
+
+
+# ---------------------------------------------------------------------------
+# Regulatory Dashboard Models (Phase 3)
+# ---------------------------------------------------------------------------
+
+
+class ComplianceMetrics(BaseModel):
+    """Aggregated compliance metrics for regulatory reporting."""
+
+    total_encounters: int = Field(default=0, description="Total encounters processed")
+    phi_redaction_rate: float = Field(
+        default=0.0, description="Pct of encounters with PHI redacted"
+    )
+    pa_approval_rate: float = Field(default=0.0, description="Pct of PAs approved")
+    pa_denial_rate: float = Field(default=0.0, description="Pct of PAs denied")
+    avg_turnaround_minutes: float = Field(default=0.0, description="Average processing time")
+    coding_error_rate: float = Field(
+        default=0.0, description="Pct of encounters with coding issues"
+    )
+    claims_submitted: int = Field(default=0, description="Total claims generated")
+    appeals_generated: int = Field(default=0, description="Total appeal letters generated")

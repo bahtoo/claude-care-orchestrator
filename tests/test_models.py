@@ -4,7 +4,6 @@ Tests for Pydantic data models.
 Validates model creation, serialization, and validation constraints.
 """
 
-
 from care_orchestrator.models import (
     AdminMetadata,
     ClinicalNote,

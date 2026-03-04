@@ -46,9 +46,7 @@ def mock_audit_report_no_cpt():
     """An audit report with no CPT codes."""
     return AuditReport(
         phi_status="CLEAN",
-        phi_detection=PHIDetectionResult(
-            is_clean=True, redacted_text="clean text", entity_count=0
-        ),
+        phi_detection=PHIDetectionResult(is_clean=True, redacted_text="clean text", entity_count=0),
         redacted_text="General wellness visit.",
         admin_metadata=AdminMetadata(
             cpt_codes=[],
@@ -63,9 +61,7 @@ def mock_audit_report_office_visit():
     """An audit report with an office visit (no PA needed)."""
     return AuditReport(
         phi_status="CLEAN",
-        phi_detection=PHIDetectionResult(
-            is_clean=True, redacted_text="clean text", entity_count=0
-        ),
+        phi_detection=PHIDetectionResult(is_clean=True, redacted_text="clean text", entity_count=0),
         redacted_text="Routine office visit.",
         admin_metadata=AdminMetadata(
             cpt_codes=["99213"],
@@ -120,9 +116,7 @@ class TestPANotRequired:
     """Tests where prior authorization is NOT required."""
 
     def test_no_cpt_codes(self, pa_generator, mock_audit_report_no_cpt):
-        with patch.object(
-            pa_generator._compliance, "audit", return_value=mock_audit_report_no_cpt
-        ):
+        with patch.object(pa_generator._compliance, "audit", return_value=mock_audit_report_no_cpt):
             result = pa_generator.submit("text", "commercial_generic")
             assert result.status == PriorAuthStatus.NOT_REQUIRED
             assert "No CPT" in result.summary
@@ -135,9 +129,7 @@ class TestPANotRequired:
             assert result.status == PriorAuthStatus.NOT_REQUIRED
 
     def test_unknown_payer(self, pa_generator, mock_audit_report):
-        with patch.object(
-            pa_generator._compliance, "audit", return_value=mock_audit_report
-        ):
+        with patch.object(pa_generator._compliance, "audit", return_value=mock_audit_report):
             result = pa_generator.submit("text", "nonexistent_payer")
             assert result.status == PriorAuthStatus.NOT_REQUIRED
             assert "not found" in result.summary
@@ -160,16 +152,10 @@ class TestAutoApprove:
 class TestPARequired:
     """Tests for full PA workflow with necessity evaluation."""
 
-    def test_approved_necessity(
-        self, pa_generator, mock_audit_report, mock_necessity_approved
-    ):
+    def test_approved_necessity(self, pa_generator, mock_audit_report, mock_necessity_approved):
         with (
-            patch.object(
-                pa_generator._compliance, "audit", return_value=mock_audit_report
-            ),
-            patch.object(
-                pa_generator._necessity, "evaluate", return_value=mock_necessity_approved
-            ),
+            patch.object(pa_generator._compliance, "audit", return_value=mock_audit_report),
+            patch.object(pa_generator._necessity, "evaluate", return_value=mock_necessity_approved),
         ):
             result = pa_generator.submit("text", "commercial_generic")
             assert result.status == PriorAuthStatus.APPROVED
@@ -185,9 +171,7 @@ class TestPARequired:
             confidence_score=0.8,
         )
         with (
-            patch.object(
-                pa_generator._compliance, "audit", return_value=mock_audit_report
-            ),
+            patch.object(pa_generator._compliance, "audit", return_value=mock_audit_report),
             patch.object(pa_generator._necessity, "evaluate", return_value=denied),
         ):
             result = pa_generator.submit("text", "commercial_generic")
@@ -202,9 +186,7 @@ class TestPARequired:
             confidence_score=0.5,
         )
         with (
-            patch.object(
-                pa_generator._compliance, "audit", return_value=mock_audit_report
-            ),
+            patch.object(pa_generator._compliance, "audit", return_value=mock_audit_report),
             patch.object(pa_generator._necessity, "evaluate", return_value=needs),
         ):
             result = pa_generator.submit("text", "commercial_generic")
@@ -214,12 +196,8 @@ class TestPARequired:
         self, pa_generator, mock_audit_report, mock_necessity_approved
     ):
         with (
-            patch.object(
-                pa_generator._compliance, "audit", return_value=mock_audit_report
-            ),
-            patch.object(
-                pa_generator._necessity, "evaluate", return_value=mock_necessity_approved
-            ),
+            patch.object(pa_generator._compliance, "audit", return_value=mock_audit_report),
+            patch.object(pa_generator._necessity, "evaluate", return_value=mock_necessity_approved),
         ):
             result = pa_generator.submit("text", "commercial_generic")
             assert result.request is not None
@@ -230,12 +208,8 @@ class TestPARequired:
         self, pa_generator, mock_audit_report, mock_necessity_approved
     ):
         with (
-            patch.object(
-                pa_generator._compliance, "audit", return_value=mock_audit_report
-            ),
-            patch.object(
-                pa_generator._necessity, "evaluate", return_value=mock_necessity_approved
-            ),
+            patch.object(pa_generator._compliance, "audit", return_value=mock_audit_report),
+            patch.object(pa_generator._necessity, "evaluate", return_value=mock_necessity_approved),
         ):
             result = pa_generator.submit("text", "commercial_generic")
             assert result.turnaround_estimate_minutes >= 0
