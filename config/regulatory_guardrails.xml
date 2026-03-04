@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Regulatory Guardrails for care-orchestrator
+  
+  This file defines the deterministic safety rules applied during
+  the compliance triage process. Rules are enforced programmatically
+  prior to any LLM reasoning.
+  
+  Referenced by: DEBUG_TRIAGE.md, compliance_engine.py
+-->
+<regulatory_guardrails version="1.0" framework="HIPAA">
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PHI Categories — What we detect and redact
+       ═══════════════════════════════════════════════════════════════════ -->
+  <phi_categories>
+    <category id="SSN" severity="critical" action="redact">
+      <description>Social Security Numbers in any format</description>
+      <redaction_token>[REDACTED_SSN]</redaction_token>
+    </category>
+    
+    <category id="PHONE" severity="high" action="redact">
+      <description>US phone numbers in any format</description>
+      <redaction_token>[REDACTED_PHONE]</redaction_token>
+    </category>
+    
+    <category id="DATE_OF_BIRTH" severity="high" action="redact">
+      <description>Dates of birth, contextual date patterns</description>
+      <redaction_token>[REDACTED_DOB]</redaction_token>
+    </category>
+    
+    <category id="EMAIL" severity="high" action="redact">
+      <description>Email addresses</description>
+      <redaction_token>[REDACTED_EMAIL]</redaction_token>
+    </category>
+    
+    <category id="NAME" severity="high" action="redact">
+      <description>Patient names (detected via LLM contextual pass)</description>
+      <redaction_token>[REDACTED_NAME]</redaction_token>
+    </category>
+    
+    <category id="MEDICAL_RECORD_NUMBER" severity="critical" action="redact">
+      <description>MRN, chart numbers, patient identifiers</description>
+      <redaction_token>[REDACTED_MRN]</redaction_token>
+    </category>
+    
+    <category id="ADDRESS" severity="high" action="redact">
+      <description>US street addresses, zip codes</description>
+      <redaction_token>[REDACTED_ADDRESS]</redaction_token>
+    </category>
+  </phi_categories>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       Escalation Triggers — When to halt and flag for human review
+       ═══════════════════════════════════════════════════════════════════ -->
+  <escalation_triggers>
+    <trigger id="high_phi_density" threshold="5">
+      <description>If more than 5 PHI entities are found in a single note, 
+      escalate for manual review</description>
+      <action>flag_for_review</action>
+      <owner>Safety/Legal</owner>
+    </trigger>
+    
+    <trigger id="unknown_code_format">
+      <description>If extracted CPT/ICD-10 codes don't match known formats, 
+      flag for clinical review</description>
+      <action>flag_for_review</action>
+      <owner>Research/Applied AI</owner>
+    </trigger>
+    
+    <trigger id="clinical_diagnosis_detected">
+      <description>If the system detects it is being asked to provide a clinical 
+      diagnosis rather than administrative processing, halt immediately</description>
+      <action>halt</action>
+      <owner>Safety/Legal</owner>
+    </trigger>
+  </escalation_triggers>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       Output Constraints — What the system is allowed to produce
+       ═══════════════════════════════════════════════════════════════════ -->
+  <output_constraints>
+    <allowed_outputs>
+      <output type="audit_report">Compliance audit results with redacted text</output>
+      <output type="fhir_r4">FHIR R4 JSON resources (Patient, Condition, Procedure, ServiceRequest)</output>
+      <output type="prior_auth_request">Prior Authorization request documents</output>
+      <output type="appeal_letter">Claims appeal letters (administrative only)</output>
+    </allowed_outputs>
+    
+    <prohibited_outputs>
+      <output type="clinical_diagnosis">System must NEVER provide clinical diagnoses</output>
+      <output type="treatment_recommendation">System must NEVER recommend treatments</output>
+      <output type="unredacted_phi">System must NEVER output raw PHI in any form</output>
+    </prohibited_outputs>
+  </output_constraints>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       Audit Trail Requirements
+       ═══════════════════════════════════════════════════════════════════ -->
+  <audit_requirements>
+    <requirement>Every PHI detection event must be logged with timestamp and entity type</requirement>
+    <requirement>Every redaction must be logged with the redaction token used</requirement>
+    <requirement>Every FHIR resource generation must be logged with validation status</requirement>
+    <requirement>Logs must be retained for minimum 6 years per HIPAA retention rules</requirement>
+    <requirement>Logs must never contain actual PHI values — only detection metadata</requirement>
+  </audit_requirements>
+
+</regulatory_guardrails>
