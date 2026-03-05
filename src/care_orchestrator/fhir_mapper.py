@@ -20,6 +20,7 @@ from fhir.resources.patient import Patient
 from fhir.resources.procedure import Procedure
 from fhir.resources.servicerequest import ServiceRequest
 
+from care_orchestrator.fhir_validator import fhir_validator
 from care_orchestrator.logging_config import logger
 from care_orchestrator.models import AdminMetadata, FHIROutput, FHIRResourceOutput
 
@@ -135,11 +136,17 @@ class FHIRMapper:
                     },
                 }
             )
-            return FHIRResourceOutput(
+            resource = FHIRResourceOutput(
                 resource_type="Patient",
                 resource_json=patient.model_dump(exclude_none=True),
                 is_valid=True,
             )
+            # US Core profile validation
+            v = fhir_validator.validate("Patient", resource.resource_json)
+            if not v.valid:
+                resource.is_valid = False
+                resource.validation_errors = v.errors
+            return resource
         except Exception as e:
             logger.error(f"Patient resource validation failed: {e}")
             return FHIRResourceOutput(
@@ -181,11 +188,17 @@ class FHIRMapper:
                     "recordedDate": datetime.now(tz=UTC).strftime("%Y-%m-%d"),
                 }
             )
-            return FHIRResourceOutput(
+            resource = FHIRResourceOutput(
                 resource_type="Condition",
                 resource_json=condition.model_dump(exclude_none=True),
                 is_valid=True,
             )
+            # US Core profile validation
+            v = fhir_validator.validate("Condition", resource.resource_json)
+            if not v.valid:
+                resource.is_valid = False
+                resource.validation_errors = v.errors
+            return resource
         except Exception as e:
             logger.error(f"Condition resource validation failed for {icd10_code}: {e}")
             return FHIRResourceOutput(
@@ -218,11 +231,17 @@ class FHIRMapper:
                     "subject": {"reference": f"Patient/{patient_id}"},
                 }
             )
-            return FHIRResourceOutput(
+            resource = FHIRResourceOutput(
                 resource_type="Procedure",
                 resource_json=procedure.model_dump(exclude_none=True),
                 is_valid=True,
             )
+            # US Core profile validation
+            v = fhir_validator.validate("Procedure", resource.resource_json)
+            if not v.valid:
+                resource.is_valid = False
+                resource.validation_errors = v.errors
+            return resource
         except Exception as e:
             logger.error(f"Procedure resource validation failed for {cpt_code}: {e}")
             return FHIRResourceOutput(
@@ -284,11 +303,17 @@ class FHIRMapper:
                     "reason": reason_refs if reason_refs else None,
                 }
             )
-            return FHIRResourceOutput(
+            resource = FHIRResourceOutput(
                 resource_type="ServiceRequest",
                 resource_json=service_request.model_dump(exclude_none=True),
                 is_valid=True,
             )
+            # US Core profile validation
+            v = fhir_validator.validate("ServiceRequest", resource.resource_json)
+            if not v.valid:
+                resource.is_valid = False
+                resource.validation_errors = v.errors
+            return resource
         except Exception as e:
             logger.error(f"ServiceRequest resource validation failed: {e}")
             return FHIRResourceOutput(

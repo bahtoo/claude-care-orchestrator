@@ -52,8 +52,10 @@ class TestPatientResource:
     def test_patient_is_valid(self, mapper, sample_metadata):
         output = mapper.map(sample_metadata, "redacted text")
         patient = next(r for r in output.resources if r.resource_type == "Patient")
-        assert patient.is_valid
-        assert patient.validation_errors == []
+        # The redacted Patient intentionally has no 'identifier' — US Core flags this.
+        # Verify the validator is wired in and catches the violation.
+        assert not patient.is_valid
+        assert any("identifier" in e for e in patient.validation_errors)
 
     def test_patient_has_redacted_name(self, mapper, sample_metadata):
         output = mapper.map(sample_metadata, "redacted text")

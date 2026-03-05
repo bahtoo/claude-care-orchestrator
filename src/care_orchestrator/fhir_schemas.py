@@ -126,3 +126,27 @@ class ComplianceMetricsResponse(BaseModel):
     generated_at: str
     total_encounters: int
     metrics: dict[str, Any] = Field(default_factory=dict)
+
+
+# ---------------------------------------------------------------------------
+# FHIR Validation
+# ---------------------------------------------------------------------------
+
+
+class FHIRValidateRequest(BaseModel):
+    """Request to validate a FHIR resource against its US Core profile."""
+
+    resource_type: str = Field(
+        ..., description="FHIR resource type: Patient | Condition | ServiceRequest | Procedure"
+    )
+    resource: dict[str, Any] = Field(..., description="Parsed FHIR resource JSON")
+
+
+class FHIRValidateResponse(BaseModel):
+    """US Core profile validation result."""
+
+    valid: bool
+    profile: str
+    errors: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    outcome: OperationOutcome = Field(default_factory=OperationOutcome)

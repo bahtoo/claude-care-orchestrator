@@ -15,7 +15,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -24,16 +24,20 @@ from care_orchestrator.fhir_schemas import (
     CodingValidateRequest,
     CodingValidateResponse,
     ComplianceMetricsResponse,
+    FHIRValidateRequest,
+    FHIRValidateResponse,
     OperationOutcome,
     OperationOutcomeIssue,
     PARequest,
     PAResponse,
     PAStageDetail,
 )
+from care_orchestrator.fhir_validator import fhir_validator
 from care_orchestrator.logging_config import logger
 from care_orchestrator.models import AgentTask, RCMStage
 from care_orchestrator.rcm_orchestrator import RCMOrchestrator
 from care_orchestrator.regulatory_dashboard import RegulatoryDashboard
+from care_orchestrator.smart_auth import auth_router, require_smart_token
 
 # ---------------------------------------------------------------------------
 # Application state
@@ -103,6 +107,9 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+# Register SMART on FHIR auth router (/.well-known/*, /auth/*)
+app.include_router(auth_router)
 
 
 # ---------------------------------------------------------------------------
@@ -311,4 +318,43 @@ async def get_compliance_metrics() -> ComplianceMetricsResponse:
             for k, v in report.items()
             if k not in ("report_type", "generated_at", "total_encounters")
         },
+    )
+
+
+# ---------------------------------------------------------------------------
+# POST /fhir/validate
+# ---------------------------------------------------------------------------
+
+
+@app.post(
+    "/fhir/validate",
+    response_model=FHIRValidateResponse,
+    tags=["FHIR"],
+    summary="Validate a FHIR resource against its US Core profile",
+)
+async def validate_fhir_resource(
+    payload: FHIRValidateRequest,
+    _token: dict | None = Depends(require_smart_token),  # noqa: B008
+) -> FHIRValidateResponse:
+    """
+    Validate a FHIR R4 resource against US Core profile rules.
+
+    Supported resource types: Patient, Condition, ServiceRequest, Procedure.
+    Returns a FHIR OperationOutcome-shaped response with errors and warnings.
+    """
+    result = fhir_validator.validate(payload.resource_type, payload.resource)
+
+    issues = [
+        OperationOutcomeIssue(severity="error", code="invalid", details=e) for e in result.errors
+    ] + [
+        OperationOutcomeIssue(severity="warning", code="informational", details=w)
+        for w in result.warnings
+    ]
+
+    return FHIRValidateResponse(
+        valid=result.valid,
+        profile=result.profile,
+        errors=result.errors,
+        warnings=result.warnings,
+        outcome=OperationOutcome(issues=issues),
     )
