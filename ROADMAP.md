@@ -69,11 +69,25 @@
 - SMART on FHIR auth: JWT (python-jose), discovery, introspection, opt-in enforcement
 - 223 automated tests (26 new), ruff clean
 
-## Phase 6: Production Hardening (Next)
+## Phase 6: Production Hardening ✅
 
-- **Objective:** Bridge from demo to production-ready deployment.
+- **Objective:** Bridge from demo to deployable — persistent storage and CMS mandated APIs.
+- **Key Result:** PA records survive server restarts; three CMS-0057 Patient Access endpoints live.
+- **Feature:** PostgreSQL via SQLAlchemy + CMS-0057 Patient, EOB, Coverage endpoints.
+
+### Implementation Notes (v0.6.0 — 2026-03-05)
+
+- SQLAlchemy 2.0 async engine (`database.py`) — SQLite default, PostgreSQL via `DATABASE_URL`
+- `PARecord` ORM model with UUID PK, indexed pa_number + patient_id, JSON fields
+- `RegulatoryDashboard` extended with `record_async`, `find_by_pa_number_async`, `get_metrics_async`
+- Three CMS-0057 Patient Access endpoints returning FHIR R4 Bundles
+- 245 automated tests (22 new), ruff clean
+
+## Phase 7: EHR Integration (Next)
+
+- **Objective:** Connect to real EHR systems for live data exchange.
 - **Candidates:**
-  - PostgreSQL-backed PA record store (replace in-memory dashboard)
-  - Patient Access FHIR API (CMS-0057 Jan 2027 mandate)
-  - Epic/Cerner FHIR sandbox integration (SMART EHR launch)
-  - Multi-tenant payer configuration
+  - Epic FHIR sandbox integration (SMART EHR launch flow end-to-end)
+  - Cerner/Oracle Health FHIR R4 adapter
+  - Multi-tenant payer configuration with DB-backed policy store
+  - Alembic migrations (replace `create_all` with versioned schema migrations)

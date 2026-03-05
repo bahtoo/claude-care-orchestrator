@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-03-05
+
+### Added
+
+- **PostgreSQL persistence** (`database.py` + `models_db.py`): SQLAlchemy 2.0 async engine with `PARecord` ORM model; defaults to SQLite (aiosqlite) in dev/test, PostgreSQL (asyncpg) in production via `DATABASE_URL`
+- **`RegulatoryDashboard` async methods**: `record_async()`, `find_by_pa_number_async()`, `get_metrics_async()` — DB-backed alongside original sync methods
+- **`create_tables()` on startup**: `app.py` lifespan now calls `await create_tables()` so tables are always ready on boot
+- **CMS-0057 Patient Access FHIR API** (`patient_access.py`): three mandated endpoints
+  - `GET /Patient/{patient_id}/$everything` — patient resource bundle (CMS-0057 § 422.119(b)(1)(i))
+  - `GET /ExplanationOfBenefit` — claims data with optional patient filter (§ 422.119(b)(1)(ii))
+  - `GET /Coverage` — insurance coverage with optional beneficiary filter (§ 422.119(b)(1)(iii))
+- **FHIR R4 Bundle assembler** (`fhir_bundle.py`): `make_bundle()`, `make_eob_entry()`, `make_coverage_entry()` helpers
+- `sqlalchemy[asyncio]>=2.0.0` + `asyncpg>=0.30.0` added to core deps; `aiosqlite>=0.20.0` added to dev deps
+- `asyncio_mode = "auto"` added to `pytest.ini_options`
+- 22 new tests: `test_database.py` (10) + `test_patient_access.py` (12) — total suite now 245 tests
+
 ## [0.5.0] - 2026-03-05
 
 ### Added

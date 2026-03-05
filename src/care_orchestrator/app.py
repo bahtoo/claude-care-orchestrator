@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from care_orchestrator.agents.coding_agent import CodingAgent
+from care_orchestrator.database import create_tables
 from care_orchestrator.fhir_schemas import (
     CodingValidateRequest,
     CodingValidateResponse,
@@ -35,6 +36,7 @@ from care_orchestrator.fhir_schemas import (
 from care_orchestrator.fhir_validator import fhir_validator
 from care_orchestrator.logging_config import logger
 from care_orchestrator.models import AgentTask, RCMStage
+from care_orchestrator.patient_access import patient_access_router
 from care_orchestrator.rcm_orchestrator import RCMOrchestrator
 from care_orchestrator.regulatory_dashboard import RegulatoryDashboard
 from care_orchestrator.smart_auth import auth_router, require_smart_token
@@ -75,8 +77,9 @@ def _get_coding_agent() -> CodingAgent:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ANN001
-    """Warm up singletons on startup."""
+    """Warm up singletons and initialise DB tables on startup."""
     logger.info("care-orchestrator API starting up")
+    await create_tables()
     _get_rcm()
     _get_dashboard()
     _get_coding_agent()
@@ -95,7 +98,7 @@ app = FastAPI(
         "End-to-end prior authorization, coding validation, "
         "and CMS-0057 compliance metrics."
     ),
-    version="0.4.0",
+    version="0.6.0",
     contact={"name": "Bahtiyar Aytac"},
     license_info={"name": "MIT"},
     lifespan=lifespan,
@@ -110,6 +113,9 @@ app.add_middleware(
 
 # Register SMART on FHIR auth router (/.well-known/*, /auth/*)
 app.include_router(auth_router)
+
+# Register CMS-0057 Patient Access router (/Patient, /ExplanationOfBenefit, /Coverage)
+app.include_router(patient_access_router)
 
 
 # ---------------------------------------------------------------------------
