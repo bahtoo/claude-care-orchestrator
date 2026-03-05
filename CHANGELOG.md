@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-03-05
+
+### Added
+
+- **FHIR US Core Profile Validator** (`fhir_validator.py`): Rule-based US Core v6.1.0 profile checks for Patient, Condition, ServiceRequest, Procedure — no HAPI server required
+- **`FHIRMapper` profile validation**: Every generated resource is now validated against its US Core profile; violations surface as actionable `validation_errors`
+- **`POST /fhir/validate` endpoint**: Submit any FHIR resource and receive a FHIR OperationOutcome with profile errors and warnings
+- **SMART on FHIR Authorization Server Stub** (`smart_auth.py`): `client_credentials` + `authorization_code` grants, JWT via `python-jose`, opaque token fallback
+- **`GET /.well-known/smart-configuration`**: SMART App Launch Framework v2.0 capability discovery
+- **`POST /auth/token` + `POST /auth/introspect`**: OAuth 2.0 token issuance + RFC 7662 introspection
+- **`require_smart_token` FastAPI dependency**: Opt-in auth enforcement via `SMART_AUTH_ENABLED=true` (default: `false`, backward compatible)
+- **`FHIRValidateRequest/Response`** Pydantic schemas in `fhir_schemas.py`
+- `python-jose[cryptography]>=3.3.0` dependency added
+- 26 new tests across `test_fhir_validator.py` (17) and `test_smart_auth.py` (13) — total suite now 223 tests
+
+## [0.4.0] - 2026-03-05
+
+### Added
+
+- **FastAPI FHIR REST server** (`app.py`): `POST /prior-authorization`, `GET /prior-authorization/{pa_number}`, `POST /coding/validate`, `GET /compliance/metrics`
+- **FHIR-shaped Pydantic schemas** (`fhir_schemas.py`): `PARequest`, `PAResponse`, `CodingValidateRequest/Response`, `ComplianceMetricsResponse`, `OperationOutcome`
+- **CMS/NPI MCP Client** (`cms_mcp_client.py`): Live CMS coverage + NPI registry via Anthropic's public MCP servers; TTL cache + graceful fallback
+- **PolicyEngine CMS fallback** (`check_requirements_with_cms_fallback`): Falls back to live CMS data when payer not in local JSON config (`USE_CMS_MCP=true`)
+- **`RegulatoryDashboard.find_by_pa_number()`**: Status lookup by PA number for GET endpoint
+- **`claude.json`**: Anthropic Claude Code skill manifest for healthcare marketplace packaging
+- CORS middleware and global FHIR OperationOutcome error handler
+- `fastapi>=0.115`, `uvicorn[standard]>=0.32`, `httpx>=0.27` dependencies added
+- 25 new tests across `test_api.py` (14) and `test_cms_mcp_client.py` (11) — total suite now 197 tests
+
 ## [0.3.0] - 2026-03-05
 
 ### Added

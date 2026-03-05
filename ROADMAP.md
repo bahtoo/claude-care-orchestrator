@@ -40,3 +40,40 @@
 - End-to-end RCM Orchestrator with compliance audit pre-pass
 - Regulatory Dashboard with CMS-ready report generation
 - 9 MCP tools total, 176 automated tests
+
+## Phase 4: FHIR API Platform (Deployable Product) ✅
+
+- **Objective:** Turn the pipeline into a deployable, publicly consumable FHIR-compliant API.
+- **Key Result:** REST API satisfying CMS-0057 prior authorization mandate (2026/2027 deadlines).
+- **Feature:** FastAPI FHIR server + Claude Code skill packaging.
+
+### Implementation Notes (v0.4.0 — 2026-03-05)
+
+- 4 FHIR REST endpoints: POST/GET prior-authorization, POST coding/validate, GET compliance/metrics
+- CMS/NPI live data via Anthropic's public MCP servers (opt-in, TTL-cached)
+- PolicyEngine extended with live CMS fallback (`USE_CMS_MCP=true`)
+- `claude.json` skill manifest for Anthropic healthcare marketplace
+- 197 automated tests (25 new), ruff clean
+
+## Phase 5: Interoperability Layer ✅
+
+- **Objective:** Make the API credible to the FHIR interoperability community.
+- **Key Result:** US Core profile validation + SMART on FHIR authorization protocol.
+- **Feature:** Resource validation against US Core v6.1.0 + EHR launch context stub.
+
+### Implementation Notes (v0.5.0 — 2026-03-05)
+
+- Rule-based US Core profile validator for 4 resource types (no HAPI FHIR server needed)
+- FHIRMapper now validates every generated resource; profile violations surface as actionable errors
+- POST /fhir/validate endpoint with OperationOutcome response
+- SMART on FHIR auth: JWT (python-jose), discovery, introspection, opt-in enforcement
+- 223 automated tests (26 new), ruff clean
+
+## Phase 6: Production Hardening (Next)
+
+- **Objective:** Bridge from demo to production-ready deployment.
+- **Candidates:**
+  - PostgreSQL-backed PA record store (replace in-memory dashboard)
+  - Patient Access FHIR API (CMS-0057 Jan 2027 mandate)
+  - Epic/Cerner FHIR sandbox integration (SMART EHR launch)
+  - Multi-tenant payer configuration
