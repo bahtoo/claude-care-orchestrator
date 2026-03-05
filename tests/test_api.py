@@ -7,6 +7,7 @@ POST /coding/validate, GET /compliance/metrics.
 """
 
 from unittest.mock import MagicMock, patch
+import uuid
 
 import pytest
 from fastapi.testclient import TestClient
@@ -46,7 +47,7 @@ def _make_rcm_result(pa_status: str = "approved") -> RCMResult:
             success=True,
             output_data={
                 "pa_status": pa_status,
-                "pa_number": "PA-COM-001",
+                "pa_number": f"PA-COM-{uuid.uuid4().hex[:6].upper()}",
             },
         ),
         AgentResult(
@@ -120,7 +121,7 @@ class TestSubmitPriorAuth:
                     "payer_id": "commercial_generic",
                 },
             )
-        assert resp.json()["pa_number"] == "PA-COM-001"
+        assert resp.json()["pa_number"].startswith("PA-COM-")
 
     def test_missing_clinical_text_returns_422(self, client):
         resp = client.post(
@@ -153,7 +154,7 @@ class TestGetPriorAuth:
             mock_rcm.run.return_value = _make_rcm_result()
             mock_rcm_factory.return_value = mock_rcm
 
-            client.post(
+            post_resp = client.post(
                 "/prior-authorization",
                 json={
                     "clinical_text": "Knee pain with mechanical symptoms.",
@@ -162,7 +163,8 @@ class TestGetPriorAuth:
             )
 
         # Dashboard lookup — may or may not be in memory depending on mock path
-        resp = client.get("/prior-authorization/PA-COM-001")
+        pa_num = post_resp.json()["pa_number"]
+        resp = client.get(f"/prior-authorization/{pa_num}")
         # 200 if dashboard recorded it, 404 otherwise (both valid in unit test)
         assert resp.status_code in (200, 404)
 

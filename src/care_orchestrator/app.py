@@ -190,7 +190,7 @@ async def submit_prior_auth(payload: PARequest) -> PAResponse:
         stages=stages,
     )
 
-    dashboard.record(result)
+    await RegulatoryDashboard.record_async(result)
 
     # Extract PA details from agent results
     pa_number: str | None = None
@@ -241,8 +241,7 @@ async def get_prior_auth(pa_number: str) -> dict[str, Any]:
     the in-memory dashboard. Persisted storage would be a Phase 5
     addition (PostgreSQL / DynamoDB).
     """
-    dashboard = _get_dashboard()
-    match = dashboard.find_by_pa_number(pa_number)
+    match = await RegulatoryDashboard.find_by_pa_number_async(pa_number)
     if match is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -312,8 +311,7 @@ async def get_compliance_metrics() -> ComplianceMetricsResponse:
 
     First annual public report due: March 31, 2026 (CMS mandate).
     """
-    dashboard = _get_dashboard()
-    report = dashboard.generate_report()
+    report = await RegulatoryDashboard.get_metrics_async()
 
     return ComplianceMetricsResponse(
         report_type=report.get("report_type", "CMS Compliance Summary"),
