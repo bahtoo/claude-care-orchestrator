@@ -71,16 +71,16 @@ class CodingAgent(BaseAgent):
         has_procedure = any(c for c in cpt_codes if c not in ("99213", "99214", "99215"))
         if has_procedure:
             for code in cpt_codes:
-                if code in MODIFIER_REQUIREMENTS:
+                if str(code) in MODIFIER_REQUIREMENTS:
                     recommendations.append(
-                        f"CPT {code} may need modifier {MODIFIER_REQUIREMENTS[code]}"
+                        f"CPT {code} may need modifier {MODIFIER_REQUIREMENTS[str(code)]}"
                     )
 
         # Validate CPT-ICD10 pairings
         for cpt in cpt_codes:
-            if cpt in VALID_PAIRINGS:
-                valid_dx = VALID_PAIRINGS[cpt]
-                matched = [dx for dx in icd10_codes if dx in valid_dx]
+            if str(cpt) in VALID_PAIRINGS:
+                valid_dx = VALID_PAIRINGS[str(cpt)]
+                matched = [dx for dx in icd10_codes if str(dx) in valid_dx]
                 if not matched:
                     recommendations.append(
                         f"CPT {cpt}: no qualifying ICD-10 code found. "

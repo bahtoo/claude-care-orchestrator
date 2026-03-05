@@ -26,6 +26,7 @@ class BaseAgent(ABC):
     @abstractmethod
     def can_handle(self, task: AgentTask) -> bool:
         """Return True if this agent can handle the given task."""
+        ...
 
     @abstractmethod
     def _execute(self, task: AgentTask) -> AgentResult:

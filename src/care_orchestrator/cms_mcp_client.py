@@ -18,6 +18,7 @@ from __future__ import annotations
 import os
 import time
 from dataclasses import dataclass
+from typing import cast
 
 import httpx
 
@@ -104,7 +105,7 @@ class CMSMCPClient:
         cache_key = f"coverage:{cpt_code}"
         cached = self._get_cache(cache_key)
         if cached is not None:
-            return cached
+            return cast(CMSCoverageResult, cached)
 
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
@@ -168,7 +169,7 @@ class CMSMCPClient:
         cache_key = f"npi:{npi}"
         cached = self._get_cache(cache_key)
         if cached is not None:
-            return cached
+            return cast(NPIResult, cached)
 
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:

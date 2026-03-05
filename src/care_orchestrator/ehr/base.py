@@ -58,10 +58,12 @@ class EHRAdapter(ABC):
     async def get_token(self) -> str:
         """Return a valid Bearer token, refreshing if expired."""
         if self._token_valid():
-            return self._token  # type: ignore[return-value]
+            assert self._token is not None
+            return self._token
         self._token, ttl = await self._fetch_token()
         self._token_expires_at = time.time() + ttl
         logger.info(f"{self.__class__.__name__}: token refreshed (ttl={ttl}s)")
+        assert self._token is not None
         return self._token
 
     @abstractmethod
@@ -72,6 +74,7 @@ class EHRAdapter(ABC):
         Returns:
             (access_token, expires_in_seconds)
         """
+        ...
 
     # ------------------------------------------------------------------
     # HTTP helpers

@@ -5,7 +5,7 @@ All LLM calls are mocked — no API key needed.
 Tests cover initial appeals, peer-to-peer, external review, and parsing.
 """
 
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -104,7 +104,7 @@ def _mock_llm(generator, response_text):
     mock_client = MagicMock()
     mock_client.messages.create.return_value = mock_message
 
-    type(generator).client = PropertyMock(return_value=mock_client)
+    generator._client = mock_client
     return generator
 
 

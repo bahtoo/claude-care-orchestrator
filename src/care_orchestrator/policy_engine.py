@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from care_orchestrator.cms_mcp_client import CMSCoverageResult, cms_mcp_client
+from care_orchestrator.cms_mcp_client import CMSCoverageResult
 from care_orchestrator.logging_config import logger
 from care_orchestrator.models import PayerPolicy, PriorAuthRequirement
 
@@ -181,7 +181,7 @@ class PolicyEngine:
                     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
                         def _run_coverage() -> CMSCoverageResult | None:
                             return asyncio.run(cms_mcp_client.check_coverage(cpt_code))
-                        future = ex.submit(_run_coverage)
+                        future = ex.submit(_run_coverage)  # type: ignore
                         coverage = future.result(timeout=6)
                 else:
                     coverage = loop.run_until_complete(cms_mcp_client.check_coverage(cpt_code))

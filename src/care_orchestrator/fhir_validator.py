@@ -117,7 +117,7 @@ class FHIRValidator:
                 ],
             )
 
-        from typing import Callable
+        from collections.abc import Callable
 
         dispatch: dict[str, Callable[[dict], ValidationResult]] = {
             "Patient": self._validate_patient,

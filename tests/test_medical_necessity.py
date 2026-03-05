@@ -5,7 +5,7 @@ All LLM calls are mocked — no API key needed.
 Tests cover approved/denied/needs_info scenarios and XML parsing.
 """
 
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock
 
 import pytest
 

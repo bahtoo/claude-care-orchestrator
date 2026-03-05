@@ -83,11 +83,27 @@
 - Three CMS-0057 Patient Access endpoints returning FHIR R4 Bundles
 - 245 automated tests (22 new), ruff clean
 
-## Phase 7: EHR Integration (Next)
+## Phase 7: EHR Integration ✅
 
 - **Objective:** Connect to real EHR systems for live data exchange.
-- **Candidates:**
+- **Candidates (Implemented):**
   - Epic FHIR sandbox integration (SMART EHR launch flow end-to-end)
   - Cerner/Oracle Health FHIR R4 adapter
   - Multi-tenant payer configuration with DB-backed policy store
   - Alembic migrations (replace `create_all` with versioned schema migrations)
+
+### Implementation Notes (v0.7.0 — 2026-03-05)
+
+- Abstract EHRAdapter with automated token lifecycle management
+- Vendor integrations for Oracle Health, Epic (RSA-2048 JWT), InterSystems, Veradigm
+- Config-driven EHRRegistry for zero-touch instantiation
+- Alembic database migration scaffolding and initial ORM seeds
+- Multi-tenant `PayerConfig` store
+
+## Phase 8: Production Release (Next)
+
+- **Objective:** Cloud deployment and full system robustness.
+- **Candidates:**
+  - Secure vault integration for EHR client secrets
+  - Production-ready observability (DataDog / Prometheus metrics)
+  - Comprehensive API documentation portal

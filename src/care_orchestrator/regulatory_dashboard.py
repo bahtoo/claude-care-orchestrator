@@ -42,14 +42,14 @@ class RegulatoryDashboard:
         if total == 0:
             return ComplianceMetrics()
 
-        phi_redacted = 0
-        pa_approved = 0
-        pa_denied = 0
-        pa_total = 0
-        coding_issues = 0
-        claims_submitted = 0
-        appeals = 0
-        total_turnaround = 0.0
+        phi_redacted: int = 0
+        pa_approved: int = 0
+        pa_denied: int = 0
+        pa_total: int = 0
+        coding_issues: int = 0
+        claims_submitted: int = 0
+        appeals: int = 0
+        total_turnaround: float = 0.0
 
         for result in self._results:
             total_turnaround += result.turnaround_minutes
@@ -79,11 +79,11 @@ class RegulatoryDashboard:
 
         return ComplianceMetrics(
             total_encounters=total,
-            phi_redaction_rate=((phi_redacted / total * 100) if total > 0 else 0.0),
-            pa_approval_rate=((pa_approved / pa_total * 100) if pa_total > 0 else 0.0),
-            pa_denial_rate=((pa_denied / pa_total * 100) if pa_total > 0 else 0.0),
-            avg_turnaround_minutes=(total_turnaround / total if total > 0 else 0.0),
-            coding_error_rate=((coding_issues / total * 100) if total > 0 else 0.0),
+            phi_redaction_rate=(float(phi_redacted) / total * 100) if total > 0 else 0.0,
+            pa_approval_rate=(float(pa_approved) / pa_total * 100) if pa_total > 0 else 0.0,
+            pa_denial_rate=(float(pa_denied) / pa_total * 100) if pa_total > 0 else 0.0,
+            avg_turnaround_minutes=(float(total_turnaround) / total if total > 0 else 0.0),
+            coding_error_rate=(float(coding_issues) / total * 100) if total > 0 else 0.0,
             claims_submitted=claims_submitted,
             appeals_generated=appeals,
         )
