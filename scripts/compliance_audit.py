@@ -1,12 +1,12 @@
 import os
-import re
+
 from anthropic import Anthropic
 
 # Initialize Anthropic Client
-# DRI Note: In a production vertical, this would be tied to a HIPAA-compliant AWS Bedrock or GCP Vertex instance.
+# DRI Note: Production uses HIPAA-compliant AWS Bedrock or GCP Vertex instance.
 client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
-def compliance_triage_engine(raw_clinical_text):
+def compliance_triage_engine(raw_clinical_text: str) -> None:
     """
     Main entry point for the 0->1 Healthcare Orchestrator.
     Triage: Scans for PHI, redacts, and converts to administrative structure.

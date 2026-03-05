@@ -57,25 +57,25 @@ class RegulatoryDashboard:
             for agent_result in result.context.agent_results:
                 if agent_result.stage == "coding":
                     if agent_result.output_data.get("has_coding_issues"):
-                        coding_issues += 1
+                        coding_issues = int(coding_issues + 1)
                     redacted = agent_result.output_data.get("redacted_text", "")
                     original = result.context.clinical_text
                     if redacted and redacted != original:
-                        phi_redacted += 1
+                        phi_redacted = int(phi_redacted + 1)
 
                 elif agent_result.stage == "prior_auth":
                     pa_status = agent_result.output_data.get("pa_status", "")
                     if pa_status and pa_status != "not_required":
-                        pa_total += 1
+                        pa_total = int(pa_total + 1)
                         if pa_status == "approved":
-                            pa_approved += 1
+                            pa_approved = int(pa_approved + 1)
                         elif pa_status == "denied":
-                            pa_denied += 1
-                            appeals += 1
+                            pa_denied = int(pa_denied + 1)
+                            appeals = int(appeals + 1)
 
                 elif agent_result.stage == "claims":
                     if agent_result.output_data.get("is_valid"):
-                        claims_submitted += 1
+                        claims_submitted = int(claims_submitted + 1)
 
         return ComplianceMetrics(
             total_encounters=total,
@@ -236,9 +236,8 @@ class RegulatoryDashboard:
                 )
             ).scalar_one()
 
-            avg_turnaround = (
-                await session.execute(select(func.avg(PARecord.turnaround_minutes)))
-            ).scalar_one() or 0.0
+            avg_result = await session.execute(select(func.avg(PARecord.turnaround_minutes)))
+            avg_turnaround = float(avg_result.scalar_one() or 0.0)
 
         return {
             "report_type": "CMS Compliance Summary (DB)",

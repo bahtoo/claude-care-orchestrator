@@ -6,8 +6,8 @@ for all 4 endpoints: POST /prior-authorization, GET /prior-authorization/{id},
 POST /coding/validate, GET /compliance/metrics.
 """
 
-from unittest.mock import MagicMock, patch
 import uuid
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient

@@ -1,16 +1,17 @@
+# ruff: noqa: S311
 """
 Generates synthetic Prior Authorization data and populates the DB.
 Run via: python -m care_orchestrator.seeds.generate_synthetic_pa
 """
 
 import asyncio
-import json
+import random
 import uuid
 from datetime import UTC, datetime, timedelta
-import random
 
 from care_orchestrator.database import AsyncSessionLocal, create_tables
 from care_orchestrator.models_db import PARecord
+
 
 async def seed_synthetic_pa() -> None:
     await create_tables()
@@ -64,7 +65,7 @@ async def seed_synthetic_pa() -> None:
         session.add_all(records)
         await session.commit()
         
-    print(f"Successfully seeded {len(records)} synthetic Prior Authorization records into the local database.")
+    print(f"Successfully seeded {len(records)} synthetic Prior Auth records into the local DB.")
 
 if __name__ == "__main__":
     asyncio.run(seed_synthetic_pa())

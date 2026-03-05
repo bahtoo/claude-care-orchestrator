@@ -21,8 +21,8 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-from care_orchestrator.database import Base  # noqa: E402
 import care_orchestrator.models_db  # noqa: F401, E402
+from care_orchestrator.database import Base  # noqa: E402
 
 target_metadata = Base.metadata
 

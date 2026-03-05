@@ -175,7 +175,6 @@ async def submit_prior_auth(payload: PARequest) -> PAResponse:
     per-stage details required by CMS-0057.
     """
     rcm = _get_rcm()
-    dashboard = _get_dashboard()
 
     stages = payload.stages or [
         RCMStage.CODING,
