@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from care_orchestrator.cms_mcp_client import CMSCoverageResult, cms_mcp_client
 from care_orchestrator.logging_config import logger
 from care_orchestrator.models import PayerPolicy, PriorAuthRequirement
 
@@ -171,16 +172,16 @@ class PolicyEngine:
             logger.info(f"Payer '{payer_id}' not local — querying CMS MCP for CPT {cpt_code}")
 
             # Run async call in a new event loop if not already in one
+            coverage: CMSCoverageResult | None = None
             try:
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
                     import concurrent.futures
 
                     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
-                        future = ex.submit(
-                            asyncio.run,
-                            cms_mcp_client.check_coverage(cpt_code),
-                        )
+                        def _run_coverage() -> CMSCoverageResult | None:
+                            return asyncio.run(cms_mcp_client.check_coverage(cpt_code))
+                        future = ex.submit(_run_coverage)
                         coverage = future.result(timeout=6)
                 else:
                     coverage = loop.run_until_complete(cms_mcp_client.check_coverage(cpt_code))

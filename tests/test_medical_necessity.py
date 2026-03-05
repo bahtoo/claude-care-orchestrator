@@ -84,7 +84,7 @@ def _mock_llm(evaluator, response_text):
     mock_client = MagicMock()
     mock_client.messages.create.return_value = mock_message
 
-    type(evaluator).client = PropertyMock(return_value=mock_client)
+    evaluator._client = mock_client
     return evaluator
 
 

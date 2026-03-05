@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import os
 
+from typing import AsyncGenerator
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -66,7 +68,7 @@ async def create_tables() -> None:
         await conn.run_sync(Base.metadata.create_all)
 
 
-async def get_session() -> AsyncSession:
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """Yield an async DB session (for use as a FastAPI dependency)."""
     async with AsyncSessionLocal() as session:
         yield session

@@ -140,7 +140,7 @@ class PHIDetector:
         redacted_text = text
         for entity in entities_sorted:
             token = self.REDACTION_TOKENS.get(entity.phi_type, "[REDACTED]")
-            redacted_text = redacted_text[: entity.start] + token + redacted_text[entity.end :]
+            redacted_text = redacted_text[: int(entity.start)] + token + redacted_text[int(entity.end) :]
 
         # Re-sort entities by position (forward) for output
         entities = sorted(entities, key=lambda e: e.start)

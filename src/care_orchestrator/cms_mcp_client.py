@@ -133,10 +133,10 @@ class CMSMCPClient:
 
                 result = CMSCoverageResult(
                     cpt_code=cpt_code,
-                    covered=result_data.get("covered", False),
-                    coverage_type=result_data.get("coverage_type", "unknown"),
-                    requires_auth=result_data.get("requires_prior_auth", False),
-                    notes=result_data.get("notes", ""),
+                    covered=bool(result_data.get("covered", False)),
+                    coverage_type=str(result_data.get("coverage_type", "unknown")),
+                    requires_auth=bool(result_data.get("requires_prior_auth", False)),
+                    notes=str(result_data.get("notes", "")),
                 )
                 self._set_cache(cache_key, result)
                 logger.info(
@@ -197,10 +197,10 @@ class CMSMCPClient:
 
                 result = NPIResult(
                     npi=npi,
-                    valid=result_data.get("valid", False),
-                    provider_name=result_data.get("provider_name", ""),
-                    specialty=result_data.get("specialty", ""),
-                    state=result_data.get("state", ""),
+                    valid=bool(result_data.get("valid", False)),
+                    provider_name=str(result_data.get("provider_name", "")),
+                    specialty=str(result_data.get("specialty", "")),
+                    state=str(result_data.get("state", "")),
                 )
                 self._set_cache(cache_key, result)
                 logger.info(

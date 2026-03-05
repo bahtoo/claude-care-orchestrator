@@ -178,7 +178,7 @@ class PriorAuthGenerator:
             NecessityDetermination.DENIED: PriorAuthStatus.DENIED,
             NecessityDetermination.NEEDS_INFO: PriorAuthStatus.PENDING_INFO,
         }
-        pa_status = status_map.get(decision.determination, PriorAuthStatus.SUBMITTED)
+        pa_status = status_map.get(decision.determination) or PriorAuthStatus.SUBMITTED
 
         elapsed = (time.monotonic() - start_time) / 60
 
