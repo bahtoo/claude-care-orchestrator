@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-03-05
+
+### Added
+
+- **EHR Adapter Framework** (`src/care_orchestrator/ehr/`): abstract `EHRAdapter` base with token caching + TTL refresh, authenticated/open-sandbox FHIR GET helper, `_bundle_entries` utility
+- **Oracle Health Adapter** (`ehr/oracle_health.py`): open sandbox (no auth) + secure sandbox via SMART `client_credentials` against Cerner Authorization Server
+- **Epic Adapter** (`ehr/epic.py`): RSA-2048 signed JWT assertion → token exchange (no `client_secret`); open sandbox fallback when no key configured; `python-jose` signing
+- **InterSystems IRIS Adapter** (`ehr/intersystems.py`): SMART `client_credentials`, configurable base URL + token URL
+- **Veradigm (AllScripts) Adapter** (`ehr/veradigm.py`): SMART OAuth 2.0 `client_credentials`, targets Veradigm Developer Portal sandbox
+- **`EHRRegistry`** (`ehr/registry.py`): env-driven factory (`EHR_VENDOR`, `EHR_BASE_URL`, `EHR_CLIENT_ID`, `EHR_CLIENT_SECRET`, `EHR_PRIVATE_KEY_PATH`); sensible open-sandbox defaults so CI works with zero config
+- **Alembic migration framework** (`alembic/`): async SQLAlchemy env, `render_as_batch` for SQLite ALTER TABLE, `_get_url()` reads config then env var (correct test isolation)
+- **Initial migration** (`0001_initial_pa_records.py`): creates `pa_records` table + indexes
+- **Second migration** (`0002_add_payer_configs.py`): creates `payer_configs` table
+- **`PayerConfig` ORM model** (`models_db.py`): `payer_id` (unique), `display_name`, `rules_json`, `active`, timestamps — multi-tenant payer policy store
+- **Payer seed script** (`seeds/load_payer_configs.py`): idempotent upsert from `config/policies/*.json` → `payer_configs` table; runnable as `python -m care_orchestrator.seeds.load_payer_configs`
+
+### Tests
+
+- +39 new tests: `test_ehr_adapters.py` (22), `test_alembic.py` (6), `test_payer_config_db.py` (11)
+- Total: **284 passing** (245 → 284)
+- Alembic migration round-trip: `upgrade head → downgrade base → upgrade head` verified on SQLite in CI
+
 ## [0.6.0] - 2026-03-05
 
 ### Added

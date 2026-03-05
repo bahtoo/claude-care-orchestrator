@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "care-orchestrator"
-version = "0.6.0"
+version = "0.7.0"
 description = "AI-Native Vertical Engine for Reducing U.S. Healthcare Administrative Friction"
 readme = "README.md"
 license = "MIT"
@@ -68,7 +68,7 @@ select = ["E", "F", "I", "N", "UP", "ANN", "S", "B"]
 ignore = ["S101"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["ANN001", "ANN201", "ANN202", "S106"]
+"tests/**" = ["ANN001", "ANN201", "ANN202", "S106", "S105"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
