@@ -127,6 +127,79 @@ class PolicyEngine:
             return True
         return False
 
+    def check_requirements_with_cms_fallback(
+        self,
+        cpt_code: str,
+        icd10_codes: list[str],
+        payer_id: str,
+    ) -> PriorAuthRequirement | None:
+        """
+        Check PA requirements with live CMS fallback.
+
+        1. Tries local JSON policy (fast, no network).
+        2. If payer not found AND USE_CMS_MCP=true, imports the async
+           CMS MCP client and schedules a coverage lookup synchronously
+           via a thread-safe helper.
+
+        Args:
+            cpt_code: The CPT procedure code.
+            icd10_codes: Supporting diagnosis codes.
+            payer_id: Payer ID — falls back to CMS if not in local config.
+
+        Returns:
+            PriorAuthRequirement from local policy OR derived from CMS data,
+            or None if payer not found and CMS MCP is disabled/unavailable.
+        """
+        # Fast path — local JSON policy found
+        local = self.check_requirements(cpt_code, icd10_codes, payer_id)
+        if local is not None:
+            return local
+
+        # Slow path — delegate to CMS MCP
+        import asyncio
+        import os
+
+        if os.getenv("USE_CMS_MCP", "false").lower() != "true":
+            logger.info(
+                f"Payer '{payer_id}' not in local config; CMS MCP disabled (USE_CMS_MCP=false)"
+            )
+            return None
+
+        try:
+            from care_orchestrator.cms_mcp_client import cms_mcp_client
+
+            logger.info(f"Payer '{payer_id}' not local — querying CMS MCP for CPT {cpt_code}")
+
+            # Run async call in a new event loop if not already in one
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    import concurrent.futures
+
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+                        future = ex.submit(
+                            asyncio.run,
+                            cms_mcp_client.check_coverage(cpt_code),
+                        )
+                        coverage = future.result(timeout=6)
+                else:
+                    coverage = loop.run_until_complete(cms_mcp_client.check_coverage(cpt_code))
+            except RuntimeError:
+                coverage = asyncio.run(cms_mcp_client.check_coverage(cpt_code))
+
+            if coverage is None:
+                return None
+
+            return PriorAuthRequirement(
+                cpt_code=cpt_code,
+                requires_auth=coverage.requires_auth,
+                criteria=[coverage.notes] if coverage.notes else [],
+            )
+
+        except Exception as e:
+            logger.warning(f"CMS MCP fallback failed: {e}")
+            return None
+
 
 # Module-level convenience instance
 policy_engine = PolicyEngine()

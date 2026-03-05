@@ -1,0 +1,30 @@
+{
+  "id": "care-orchestrator@healthcare",
+  "name": "Care Orchestrator",
+  "description": "End-to-end AI-native Revenue Cycle Management: HIPAA-compliant PHI redaction, prior authorization, coding validation, appeal generation, and CMS-0057 regulatory metrics. The production-grade system for hospital billing teams.",
+  "version": "0.4.0",
+  "homepage": "https://github.com/bahtoo/claude-care-orchestrator",
+  "transport": "stdio",
+  "command": ["python", "-m", "care_orchestrator.mcp_server"],
+  "env_required": ["ANTHROPIC_API_KEY"],
+  "env_optional": {
+    "ANTHROPIC_MODEL": "claude-opus-4-5",
+    "POLICIES_DIR": "config/policies",
+    "USE_CMS_MCP": "false"
+  },
+  "tools": [
+    "audit_phi",
+    "submit_prior_auth",
+    "generate_appeal",
+    "run_rcm_pipeline",
+    "validate_coding",
+    "get_compliance_metrics",
+    "check_medical_necessity",
+    "map_to_fhir",
+    "get_payer_policy"
+  ],
+  "categories": ["healthcare", "prior-authorization", "rcm", "compliance", "fhir"],
+  "requirements": {
+    "python": ">=3.11"
+  }
+}

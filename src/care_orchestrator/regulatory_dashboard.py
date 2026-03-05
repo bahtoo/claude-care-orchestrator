@@ -77,9 +77,12 @@ class RegulatoryDashboard:
 
     def generate_report(self) -> dict:
         """Generate a CMS-ready compliance report."""
+        from datetime import datetime
+
         metrics = self.get_metrics()
         return {
             "report_type": "CMS Compliance Summary",
+            "generated_at": datetime.utcnow().isoformat(),
             "total_encounters": metrics.total_encounters,
             "phi_compliance": {
                 "redaction_rate_pct": round(metrics.phi_redaction_rate, 1),
@@ -101,6 +104,27 @@ class RegulatoryDashboard:
                 "avg_turnaround_min": round(metrics.avg_turnaround_minutes, 2),
             },
         }
+
+    def find_by_pa_number(self, pa_number: str) -> dict | None:
+        """
+        Find a recorded result by PA number.
+
+        Searches agent results for a prior_auth stage with a matching
+        pa_number in output_data. Returns a summary dict or None.
+        """
+        for result in self._results:
+            for agent_result in result.context.agent_results:
+                if agent_result.stage == "prior_auth":
+                    if agent_result.output_data.get("pa_number") == pa_number:
+                        return {
+                            "pa_number": pa_number,
+                            "pa_status": agent_result.output_data.get("pa_status"),
+                            "success": result.success,
+                            "stages_completed": result.stages_completed,
+                            "turnaround_minutes": result.turnaround_minutes,
+                            "summary": result.summary,
+                        }
+        return None
 
     def reset(self) -> None:
         """Clear all recorded results."""

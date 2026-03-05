@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "care-orchestrator"
-version = "0.1.0"
+version = "0.4.0"
 description = "AI-Native Vertical Engine for Reducing U.S. Healthcare Administrative Friction"
 readme = "README.md"
 license = "MIT"
@@ -12,9 +12,9 @@ requires-python = ">=3.11"
 authors = [
     { name = "Bahtiyar Aytac" },
 ]
-keywords = ["healthcare", "ai", "hipaa", "fhir", "mcp", "anthropic"]
+keywords = ["healthcare", "ai", "hipaa", "fhir", "mcp", "anthropic", "fastapi"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Healthcare Industry",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.11",
@@ -30,13 +30,20 @@ dependencies = [
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
     "python-dotenv>=1.0.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "httpx>=0.27.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.24.0",
+    "httpx>=0.27.0",
     "ruff>=0.8.0",
+]
+server = [
+    "uvicorn[standard]>=0.32.0",
 ]
 
 [project.urls]
